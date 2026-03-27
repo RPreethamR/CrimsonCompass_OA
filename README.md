@@ -69,4 +69,3 @@ The GitHub Actions workflow (`.github/workflows/cicd_workflow.yml`) runs on ever
 3. **Deploy** — deploys to Azure Web App via publish profile
 
 Required GitHub Secrets: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `JWT_SECRET`, `TMS_SERVICE_URL`, `CORS_ALLOWED_ORIGINS`, `OAUTH_REDIRECT_URL`, `AZURE_PUBLISH_PROFILE`.
-
