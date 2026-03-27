@@ -1,0 +1,81 @@
+name: CrimsonCompass OAuth CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  JAVA_VERSION: '17'
+  REGISTRY: ghcr.io
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        run: mvn -B clean test
+        env:
+          GOOGLE_CLIENT_ID: test-client-id
+          GOOGLE_CLIENT_SECRET: test-client-secret
+          JWT_SECRET: dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWhtYWMtc2hhLTUxMi1hbGdvcml0aG0tNjQtYnl0ZXM=
+          TMS_SERVICE_URL: http://localhost:8080
+          CORS_ALLOWED_ORIGINS: http://localhost:3000
+          OAUTH_REDIRECT_URL: http://localhost:3000
+
+      - name: Build package
+        run: mvn -B package -DskipTests
+
+  publish:
+    name: Publish & Deploy
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build package
+        run: mvn -B clean package -DskipTests
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TMS_SERVICE_URL: ${{ secrets.TMS_SERVICE_URL }}
+          CORS_ALLOWED_ORIGINS: ${{ secrets.CORS_ALLOWED_ORIGINS }}
+          OAUTH_REDIRECT_URL: ${{ secrets.OAUTH_REDIRECT_URL }}
+
+      - name: Set repository owner lowercase
+        run: echo "REPO_OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Build and push Docker image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+          docker build -t ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/crimsoncompass_oauth:latest .
+          docker push ${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/crimsoncompass_oauth:latest
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'ccoauth'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE }}
+          images: '${{ env.REGISTRY }}/${{ env.REPO_OWNER }}/crimsoncompass_oauth:latest'
