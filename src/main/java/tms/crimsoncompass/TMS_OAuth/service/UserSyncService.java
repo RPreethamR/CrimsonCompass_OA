@@ -1,31 +1,43 @@
 package tms.crimsoncompass.TMS_OAuth.service;
 
-import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Service;
 import tms.crimsoncompass.TMS_OAuth.client.TmsUserClient;
+import tms.crimsoncompass.TMS_OAuth.dto.UserSyncRequest;
 
+/**
+ * Synchronizes authenticated OAuth user data with the TMS main backend
+ * via a Feign client call to {@code POST /api/users/sync}.
+ */
 @Service
 public class UserSyncService {
 
+    private static final Logger log = LoggerFactory.getLogger(UserSyncService.class);
+
     private final TmsUserClient tmsUserClient;
 
-    @Autowired
     public UserSyncService(TmsUserClient tmsUserClient) {
         this.tmsUserClient = tmsUserClient;
     }
 
-    // Inner record representing the sync payload
-    public record UserSyncRequest(String authId, String email, String name) {}
-
+    /**
+     * Extracts user attributes from the OAuth2 principal and syncs them
+     * to the TMS service. Failures are logged but do not block the auth flow.
+     */
     public void syncUser(OAuth2User oauthUser) {
         UserSyncRequest request = new UserSyncRequest(
                 (String) oauthUser.getAttribute("authId"),
                 (String) oauthUser.getAttribute("email"),
                 (String) oauthUser.getAttribute("name")
         );
-        // Feign client call – sends a POST request to TMS /api/users/sync endpoint
-        tmsUserClient.syncUser(request);
+
+        try {
+            tmsUserClient.syncUser(request);
+            log.info("User synced successfully: authId={}", request.authId());
+        } catch (Exception e) {
+            log.error("Failed to sync user authId={}: {}", request.authId(), e.getMessage(), e);
+        }
     }
 }
-

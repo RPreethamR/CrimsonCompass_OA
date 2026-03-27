@@ -7,8 +7,8 @@ spring:
       client:
         registration:
           google:
-            client-id: 1068470782537-b7mcaif0ibcjbf7ufpfqp358lab9rm2n.apps.googleusercontent.com
-            client-secret: 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
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
             scope:
               - email
               - profile
@@ -16,8 +16,13 @@ spring:
 
 tms:
   service:
-    url: https://ccmain-hzcbg5c8hzh4dwfc.centralus-01.azurewebsites.net  # URL where the TMS service is hosted
+    url: ${TMS_SERVICE_URL:http://localhost:8080}
 
-jwt:
-  secret: avo39dCJsnW1/1FktGOqtFsVjVDvKd2RiTmjZoI7LLWE4nzurzSG7D9+1zeWMMjNcyljW94TdiDTb0QNzvs3gA== # YOUR_JWT_SECRET_KEY
-  expiration: 3600000  # JWT expiration time in milliseconds (1 hour)
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: ${JWT_EXPIRATION:3600000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  redirect:
+    url: ${OAUTH_REDIRECT_URL:http://localhost:3000}

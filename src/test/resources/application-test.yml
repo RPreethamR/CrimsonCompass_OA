@@ -1,0 +1,30 @@
+# Test profile — provides dummy values so tests run without real credentials
+server:
+  port: 8081
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope:
+              - email
+              - profile
+            redirect-uri: "{baseUrl}/login/oauth2/code/google"
+
+tms:
+  service:
+    url: http://localhost:8080
+
+app:
+  jwt:
+    # 64-byte Base64 key for HmacSHA512 (test only)
+    secret: dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWhtYWMtc2hhLTUxMi1hbGdvcml0aG0tNjQtYnl0ZXM=
+    expiration: 3600000
+  cors:
+    allowed-origins: http://localhost:3000
+  redirect:
+    url: http://localhost:3000
